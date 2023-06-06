@@ -3,9 +3,10 @@ import "./style.css";
 let puntuacionActual = 0;
 let newCardValue = 0;
 let newCardValuePoints = 0;
-let mensajeSpan = document.getElementById("mensaje") as HTMLSpanElement;
-let currentImage = document.getElementById("cartaActual") as HTMLImageElement;
+const mensajeSpan = document.getElementById("mensaje");
+const currentImage = document.getElementById("cartaActual");
 
+//////////////////////MENSAJES//////////////////////
 interface GameMessages {
   messageStartGame: string;
   messageWin: string;
@@ -16,7 +17,7 @@ interface GameMessages {
   messageAbandonBetween4and5Half: string;
   messageAbandonBetween6and7: string;
 }
-let gameMessages: GameMessages = {
+const gameMessages: GameMessages = {
   messageStartGame: "Buena suerte!",
   messageWin: "¡Lo has clavado! ¡Enhorabuena!",
   messageLose: "No juegas muy bien...",
@@ -26,67 +27,108 @@ let gameMessages: GameMessages = {
   messageAbandonBetween4and5Half: "Te ha entrado el canguelo eh?",
   messageAbandonBetween6and7: "Casi casi...",
 };
-mensajeSpan.textContent = gameMessages.messageStartGame;
 
-interface Button {
-  id: string;
-  disabled: boolean;
+//////////////////////BOTON: DEALCARD//////////////////////
+const dealCardButton = document.getElementById(
+  "dealCardButton"
+) as HTMLButtonElement;
+
+if (dealCardButton) {
+  dealCardButton.addEventListener("click", dameCarta);
 }
-interface GameButtons {
-  dealCard: Button;
-  abandon: Button;
-  whatIf: Button;
-  reset: Button;
+//////////////////////BOTON: ABANDON//////////////////////
+const abandonButton = document.getElementById(
+  "forfeitButton"
+) as HTMLButtonElement;
+
+if (abandonButton) {
+  abandonButton.addEventListener("click", abandonar);
+}
+//////////////////////BOTON: WHATIF//////////////////////
+const whatIfButton = document.getElementById(
+  "whatIfButton"
+) as HTMLButtonElement;
+
+if (whatIfButton) {
+  whatIfButton.addEventListener("click", () => {
+    whatIf();
+    if (mensajeSpan && mensajeSpan instanceof HTMLSpanElement) {
+      mensajeSpan.textContent = whatIfMessage(
+        puntuacionActual,
+        newCardValuePoints
+      );
+    }
+  });
+}
+//////////////////////BOTON: RESET//////////////////////
+const resetButton = document.getElementById("resetButton") as HTMLButtonElement;
+
+if (resetButton) {
+  resetButton.addEventListener("click", resetGame);
 }
 
-let gameButtons: GameButtons = {
-  dealCard: {
-    id: "dealCardButton",
-    disabled: false,
-  },
-  abandon: {
-    id: "forfeitButton",
-    disabled: false,
-  },
-  whatIf: {
-    id: "whatIfButton",
-    disabled: false,
-  },
-  reset: {
-    id: "resetButton",
-    disabled: false,
-  },
-};
+/////////////////////////////////////////////////BOTONES: FUNCIONES/////////////////////////////////////////////////
 
-let dealCardButton = document.getElementById(gameButtons.dealCard.id);
-let abandonButton = document.getElementById(gameButtons.abandon.id);
-let whatIfButton = document.getElementById(gameButtons.whatIf.id);
-let resetButton = document.getElementById(gameButtons.reset.id);
+function whatIf() {
+  disableButtonWhatIf(true);
+
+  newCardValue = newCardValueCalc();
+  newCardValue = newCardValueAdd(newCardValue);
+  if (currentImage && currentImage instanceof HTMLImageElement) {
+    updateCurrentImage(newCardValue);
+  }
+  newCardValuePoints = newCardValuePointsToSUM(newCardValue);
+}
+
+function resetGame() {
+  puntuacionActual = 0;
+  newCardValue = 0;
+  newCardValuePoints = 0;
+
+  allButtonsDisabledExceptDealCard();
+
+  if (mensajeSpan && mensajeSpan instanceof HTMLSpanElement) {
+    mensajeSpan.textContent = gameMessages.messageStartGame;
+  }
+  muestraPuntuacion(puntuacionActual.toString());
+  if (currentImage && currentImage instanceof HTMLImageElement) {
+    updateCurrentImage("Card Reverse");
+  }
+}
+
+function abandonar() {
+  allButtonsDisabledExceptResetGameWhatIf();
+
+  let messageToShow = abandonMessage(puntuacionActual) as string;
+  updateMessage(messageToShow);
+}
+
+function dameCarta() {
+  gameStart();
+  newCardValue = newCardValueCalc(); // calculo el valor aleatorio (1-10)
+  newCardValue = newCardValueAdd(newCardValue); // calculo el numero de carta(1-7 / 10-12)
+  if (currentImage && currentImage instanceof HTMLImageElement) {
+    updateCurrentImage(newCardValue);
+  } //  mostrarCarta() para traer URL y asignarla
+  newCardValuePoints = newCardValuePointsToSUM(newCardValue); // calculo el valor a sumar (0.5 o 1-7)
+  puntuacionActual += newCardValuePoints; // asigno el valor a sumar a puntuacionActual, que almacena los puntos de partida
+  muestraPuntuacion(puntuacionActual.toString()); // muestra los puntos
+  comprobarpartida(puntuacionActual);
+}
+/////////////////////////////////////////////////CALCULO VALORES/////////////////////////////////////////////////
 
 function newCardValuePointsToSUM(value: number) {
   return value < 8 ? value : 0.5;
 }
-
-const muestraPuntuacion = (puntuacion: string) => {
-  let textoMarcador = `Puntos: ` + puntuacion;
-  let marcadorSpan = document.getElementById("marcador");
-  marcadorSpan != null
-    ? (marcadorSpan.innerHTML = textoMarcador)
-    : console.log(`marcador: ${textoMarcador}`);
-};
-
-function dameCarta() {
-  gameStart();
-  newCardValue = newCardValueCalc();
-  newCardValue = newCardValueAdd(newCardValue);
-  if (currentImage.src && currentImage instanceof HTMLImageElement) {
-    currentImage.src = updateCurrentImage("New Card") as string;
-  }
-  newCardValuePoints = newCardValuePointsToSUM(newCardValue);
-  puntuacionActual += newCardValuePoints;
-  muestraPuntuacion(puntuacionActual.toString());
-  comprobarpartida(puntuacionActual);
+function newCardValueCalc() {
+  return Math.round(Math.random() * 9 + 1);
 }
+
+function newCardValueAdd(value: number) {
+  return value > 7 ? value + 2 : value;
+}
+
+/////////////////////////////////////////////////INICIO Y FIN DE PARTIDA/////////////////////////////////////////////////
 
 function gameStart() {
   if (
@@ -97,27 +139,17 @@ function gameStart() {
   ) {
     disableButtonAbandonCard(false);
     disableButtonReset(false);
-    // buttonsDisabled({
-    //   abandonValue: false,
-    //   resetValue: false,
-    // });
   }
-  mensajeSpan.textContent = null;
+  if (mensajeSpan && mensajeSpan instanceof HTMLSpanElement) {
+    mensajeSpan.textContent = null;
+  }
 }
 
 function comprobarpartida(value: number) {
   if (value > 7.5 || value === 7.5) {
     finDePartida(value);
-    finDePartidaBotones(value);
+    allButtonsDisabledExceptResetGame();
   }
-}
-
-function newCardValueCalc() {
-  return Math.round(Math.random() * 9 + 1);
-}
-
-function newCardValueAdd(value: number) {
-  return value > 7 ? value + 2 : value;
 }
 
 function finDePartida(value: number) {
@@ -127,22 +159,12 @@ function finDePartida(value: number) {
   }
 }
 
-function finDePartidaBotones(value: number) {
-  value > 7.5
-    ? allButtonsDisabledExceptResetGame()
-    : // buttonsDisabled({
-      //     dealCardValue: true,
-      //     abandonValue: true,
-      //     whatIfValue: false,
-      //     resetValue: false,
-      //   })
-      allButtonsDisabledExceptResetGame();
-  // buttonsDisabled({
-  //     dealCardValue: true,
-  //     abandonValue: true,
-  //     whatIfValue: true,
-  //     resetValue: false,
-  //   })
+/////////////////////////////////////////////////ACTUALIZAR IMAGEN/////////////////////////////////////////////////
+
+function updateCurrentImage(value: string | number): void {
+  if (currentImage && currentImage instanceof HTMLImageElement) {
+    currentImage.src = mostrarCarta(value.toString());
+  }
 }
 
 function mostrarCarta(value: string) {
@@ -187,21 +209,14 @@ function mostrarCarta(value: string) {
       value =
         "https://raw.githubusercontent.com/Lemoncode/fotos-ejemplos/main/cartas/copas/12_rey-copas.jpg";
       break;
+    case "Card Reverse":
+      value =
+        "https://raw.githubusercontent.com/Lemoncode/fotos-ejemplos/main/cartas/back.jpg";
   }
   return value;
 }
 
-function whatIf() {
-  if (whatIfButton && whatIfButton instanceof HTMLButtonElement) {
-    disableButtonWhatIf(true);
-    // buttonsDisabled({ whatIfValue: true });
-  }
-
-  newCardValue = newCardValueCalc();
-  newCardValue = newCardValueAdd(newCardValue);
-  currentImage.src = updateCurrentImage("New Card") as string;
-  newCardValuePoints = newCardValuePointsToSUM(newCardValue);
-}
+/////////////////////////////////////////////////ACTUALIZAR MENSAJE/////////////////////////////////////////////////
 
 function whatIfMessage(puntuacion: number, nuevospuntos: number) {
   return puntuacion + nuevospuntos > 7.5
@@ -210,44 +225,6 @@ function whatIfMessage(puntuacion: number, nuevospuntos: number) {
         `${puntuacion + nuevospuntos} puntos`;
 }
 
-function resetGame() {
-  puntuacionActual = 0;
-  newCardValue = 0;
-  newCardValuePoints = 0;
-
-  allButtonsDisabledExceptDealCard();
-  //  buttonsDisabled({
-  //   dealCardValue: false,
-  //   abandonValue: true,
-  //   whatIfValue: true,
-  //   resetValue: true,
-  // })
-  mensajeSpan.textContent = gameMessages.messageStartGame;
-  muestraPuntuacion(puntuacionActual.toString());
-  currentImage.src = updateCurrentImage("Card Reverse") as string;
-}
-
-function updateCurrentImage(value: string) {
-  if (value === "New Card") {
-    return mostrarCarta(newCardValue.toString());
-  }
-  if (value === "Card Reverse") {
-    return "https://raw.githubusercontent.com/Lemoncode/fotos-ejemplos/main/cartas/back.jpg";
-  }
-  return null;
-}
-
-function abandonar() {
-  allButtonsDisabledExceptResetGameWhatIf();
-  // buttonsDisabled({
-  //   dealCardValue: true,
-  //   abandonValue: true,
-  //   whatIfValue: false,
-  //   resetValue: false,
-  // });
-  let messageToShow = abandonMessage(puntuacionActual) as string;
-  updateMessage(messageToShow);
-}
 function abandonMessage(value: number) {
   if (value < 4) {
     return gameMessages.messageAbandonLowerThan4;
@@ -260,6 +237,7 @@ function abandonMessage(value: number) {
   }
   return null;
 }
+
 function WinOrLoseMessage(value: number) {
   if (value === 7.5) {
     return gameMessages.messageWin;
@@ -269,9 +247,14 @@ function WinOrLoseMessage(value: number) {
   }
   return null;
 }
+
 function updateMessage(messageToShow: string) {
-  mensajeSpan.textContent = messageToShow;
+  if (mensajeSpan && mensajeSpan instanceof HTMLSpanElement) {
+    mensajeSpan.textContent = messageToShow;
+  }
 }
+
+/////////////////////////////////////////////////DESHABILITAR BOTONES/////////////////////////////////////////////////
 
 function disableButtonDealCard(value: boolean) {
   if (dealCardButton && dealCardButton instanceof HTMLButtonElement) {
@@ -314,67 +297,14 @@ function allButtonsDisabledExceptResetGameWhatIf() {
   disableButtonReset(false);
 }
 
-// function disableButton(buttonToDisable: HTMLElement, value: boolean) {
-//   if (buttonToDisable && buttonToDisable instanceof HTMLButtonElement) {
-//     buttonToDisable.disabled = value;
-//   }
-// }
-// function buttonsDisabled(botones: {
-//   dealCardValue?: boolean;
-//   abandonValue?: boolean;
-//   whatIfValue?: boolean;
-//   resetValue?: boolean;
-// }) {
-//   if (
-//     dealCardButton &&
-//     dealCardButton instanceof HTMLButtonElement &&
-//     botones.dealCardValue !== undefined &&
-//     botones.dealCardValue !== null
-//   ) {
-//     disableButton(dealCardButton, botones.dealCardValue);
-//   }
-//   if (
-//     abandonButton &&
-//     abandonButton instanceof HTMLButtonElement &&
-//     botones.abandonValue !== undefined &&
-//     botones.abandonValue !== null
-//   ) {
-//     disableButton(abandonButton, botones.abandonValue);
-//   }
-//   if (
-//     whatIfButton &&
-//     whatIfButton instanceof HTMLButtonElement &&
-//     botones.whatIfValue !== undefined &&
-//     botones.whatIfValue !== null
-//   ) {
-//     disableButton(whatIfButton, botones.whatIfValue);
-//   }
-//   if (
-//     resetButton &&
-//     resetButton instanceof HTMLButtonElement &&
-//     botones.resetValue !== undefined &&
-//     botones.resetValue !== null
-//   ) {
-//     disableButton(resetButton, botones.resetValue);
-//   }
-// }
+/////////////////////////////////////////////////ACTUALIZAR MARCADOR/////////////////////////////////////////////////
+
+const muestraPuntuacion = (puntuacion: string) => {
+  let textoMarcador = `Puntos: ` + puntuacion;
+  let marcadorSpan = document.getElementById("marcador");
+  marcadorSpan != null
+    ? (marcadorSpan.innerHTML = textoMarcador)
+    : console.log(`marcador: ${textoMarcador}`);
+};
 
 document.addEventListener("DOMContentLoaded", () => muestraPuntuacion("0"));
-if (dealCardButton) {
-  dealCardButton.addEventListener("click", dameCarta);
-}
-if (abandonButton) {
-  abandonButton.addEventListener("click", abandonar);
-}
-if (whatIfButton) {
-  whatIfButton.addEventListener("click", () => {
-    whatIf();
-    mensajeSpan.textContent = whatIfMessage(
-      puntuacionActual,
-      newCardValuePoints
-    );
-  });
-}
-if (resetButton) {
-  resetButton.addEventListener("click", resetGame);
-}
