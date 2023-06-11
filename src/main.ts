@@ -1,16 +1,12 @@
 import "./style.css";
 
-let puntuacionActual = 0;
-let newCardValue = 0;
-let newCardValuePoints = 0;
-const mensajeSpan = document.getElementById("mensaje");
-const currentImage = document.getElementById("cartaActual");
+let currentPoints = 0;
 
-//////////////////////MENSAJES//////////////////////
+//////////////////////MESSAGES//////////////////////
 interface GameMessages {
   messageStartGame: string;
-  messageWin: string;
-  messageLose: string;
+  messageGameWon: string;
+  messageGameLost: string;
   messageWhatIfGoodDecision: string;
   messageWhatIfBadDecision: string;
   messageAbandonLowerThan4: string;
@@ -19,8 +15,8 @@ interface GameMessages {
 }
 const gameMessages: GameMessages = {
   messageStartGame: "Buena suerte!",
-  messageWin: "¡Lo has clavado! ¡Enhorabuena!",
-  messageLose: "No juegas muy bien...",
+  messageGameWon: "¡Lo has clavado! ¡Enhorabuena!",
+  messageGameLost: "No juegas muy bien...",
   messageWhatIfGoodDecision: "Pues si, hiciste bien!",
   messageWhatIfBadDecision: `Mala decision! Habrias tenido `,
   messageAbandonLowerThan4: "Has sido muy conservador",
@@ -28,146 +24,116 @@ const gameMessages: GameMessages = {
   messageAbandonBetween6and7: "Casi casi...",
 };
 
-//////////////////////BOTON: DEALCARD//////////////////////
-const dealCardButton = document.getElementById(
-  "dealCardButton"
-) as HTMLButtonElement;
+//////////////////////BUTTONS//////////////////////
+const dealCardButton = document.getElementById("dealCardButton");
+const abandonButton = document.getElementById("forfeitButton");
+const whatIfButton = document.getElementById("whatIfButton");
+const resetButton = document.getElementById("resetButton");
+document.addEventListener("DOMContentLoaded", initGame);
 
-if (dealCardButton) {
-  dealCardButton.addEventListener("click", dameCarta);
-}
-//////////////////////BOTON: ABANDON//////////////////////
-const abandonButton = document.getElementById(
-  "forfeitButton"
-) as HTMLButtonElement;
-
-if (abandonButton) {
-  abandonButton.addEventListener("click", abandonar);
-}
-//////////////////////BOTON: WHATIF//////////////////////
-const whatIfButton = document.getElementById(
-  "whatIfButton"
-) as HTMLButtonElement;
-
-if (whatIfButton) {
-  whatIfButton.addEventListener("click", () => {
-    whatIf();
-    if (mensajeSpan && mensajeSpan instanceof HTMLSpanElement) {
-      mensajeSpan.textContent = whatIfMessage(
-        puntuacionActual,
-        newCardValuePoints
-      );
-    }
-  });
-}
-//////////////////////BOTON: RESET//////////////////////
-const resetButton = document.getElementById("resetButton") as HTMLButtonElement;
-
-if (resetButton) {
-  resetButton.addEventListener("click", resetGame);
-}
-
-/////////////////////////////////////////////////BOTONES: FUNCIONES/////////////////////////////////////////////////
-
-function whatIf() {
-  disableButtonWhatIf(true);
-
-  newCardValue = newCardValueCalc();
-  newCardValue = newCardValueAdd(newCardValue);
-  if (currentImage && currentImage instanceof HTMLImageElement) {
-    updateCurrentImage(newCardValue);
+/////////////////////////////////////////////////INIT GAME/////////////////////////////////////////////////
+function initGame() {
+  if (dealCardButton && dealCardButton instanceof HTMLButtonElement) {
+    dealCardButton.addEventListener("click", dealCard.bind(null, "newDeal"));
   }
-  newCardValuePoints = newCardValuePointsToSUM(newCardValue);
+  if (abandonButton && abandonButton instanceof HTMLButtonElement) {
+    abandonButton.addEventListener("click", abandon);
+  }
+  if (whatIfButton && whatIfButton instanceof HTMLButtonElement) {
+    whatIfButton.addEventListener("click", whatIfClick);
+  }
+  if (resetButton && resetButton instanceof HTMLButtonElement) {
+    resetButton.addEventListener("click", resetGame);
+  }
+  displayPoints("0");
+}
+
+/////////////////////////////////////////////////BUTTONS: FUNCTIONS/////////////////////////////////////////////////
+function whatIfClick() {
+  disableButtonWhatIf(true);
+  dealCard("whatIf");
 }
 
 function resetGame() {
-  puntuacionActual = 0;
-  newCardValue = 0;
-  newCardValuePoints = 0;
-
+  currentPoints = 0;
   allButtonsDisabledExceptDealCard();
-
-  if (mensajeSpan && mensajeSpan instanceof HTMLSpanElement) {
-    mensajeSpan.textContent = gameMessages.messageStartGame;
-  }
-  muestraPuntuacion(puntuacionActual.toString());
-  if (currentImage && currentImage instanceof HTMLImageElement) {
-    updateCurrentImage("Card Reverse");
-  }
+  updateMessage(gameMessages.messageStartGame);
+  displayPoints(currentPoints.toString());
+  let CardToBeDisplayed: string = fetchCardURL("Card Reverse");
+  updateCurrentImage(CardToBeDisplayed);
 }
 
-function abandonar() {
+function abandon() {
   allButtonsDisabledExceptResetGameWhatIf();
-
-  let messageToShow = abandonMessage(puntuacionActual) as string;
+  let messageToShow: string = abandonMessage(currentPoints);
   updateMessage(messageToShow);
 }
 
-function dameCarta() {
-  gameStart();
-  newCardValue = newCardValueCalc(); // calculo el valor aleatorio (1-10)
-  newCardValue = newCardValueAdd(newCardValue); // calculo el numero de carta(1-7 / 10-12)
-  if (currentImage && currentImage instanceof HTMLImageElement) {
-    updateCurrentImage(newCardValue);
-  } //  mostrarCarta() para traer URL y asignarla
-  newCardValuePoints = newCardValuePointsToSUM(newCardValue); // calculo el valor a sumar (0.5 o 1-7)
-  puntuacionActual += newCardValuePoints; // asigno el valor a sumar a puntuacionActual, que almacena los puntos de partida
-  muestraPuntuacion(puntuacionActual.toString()); // muestra los puntos
-  comprobarpartida(puntuacionActual);
-}
-/////////////////////////////////////////////////CALCULO VALORES/////////////////////////////////////////////////
+function dealCard(dealType: string | null) {
+  let newCardValue: number = newCardValueCalc(); // generates random value (1-10)
+  let newCardNumber = newCardNumberCalc(newCardValue); // assigns card number from previous random value (1-7 / 10-12)
+  let CardToBeDisplayed: string = fetchCardURL(newCardNumber.toString()); // fetches new card image URL
+  let newCardPoints = newCardPointsToSUM(newCardNumber); // calculates new card points (0.5 or 1-7)
 
-function newCardValuePointsToSUM(value: number) {
+  if (dealType === "whatIf") {
+    let messageToShow: string = whatIfMessage(currentPoints, newCardPoints);
+    updateMessage(messageToShow);
+  }
+  if (dealType === "newDeal") {
+    currentPoints += newCardPoints; // sums newCardPoints to currentPoints, which holds current game score
+    gameStart();
+    updateCurrentImage(CardToBeDisplayed); // updates image displayed
+    displayPoints(currentPoints.toString()); // displays current game score in the scoreboard span
+    gameCheck(currentPoints); // checks wether the current game is won or lost
+  }
+}
+
+/////////////////////////////////////////////////CALC VALUES/////////////////////////////////////////////////
+function newCardPointsToSUM(value: number): number {
   return value < 8 ? value : 0.5;
 }
 function newCardValueCalc() {
   return Math.round(Math.random() * 9 + 1);
 }
-
-function newCardValueAdd(value: number) {
+function newCardNumberCalc(value: number) {
   return value > 7 ? value + 2 : value;
 }
 
-/////////////////////////////////////////////////INICIO Y FIN DE PARTIDA/////////////////////////////////////////////////
-
+/////////////////////////////////////////////////GAME START & GAME OVER/////////////////////////////////////////////////
 function gameStart() {
-  if (
-    abandonButton &&
-    resetButton &&
-    abandonButton instanceof HTMLButtonElement &&
-    resetButton instanceof HTMLButtonElement
-  ) {
-    disableButtonAbandonCard(false);
-    disableButtonReset(false);
+  disableButtonAbandonCard(false);
+  disableButtonReset(false);
+  updateMessage(null);
+}
+
+function gameCheck(value: number) {
+  if (value > 7.5) {
+    gameLost();
   }
-  if (mensajeSpan && mensajeSpan instanceof HTMLSpanElement) {
-    mensajeSpan.textContent = null;
+  if (value === 7.5) {
+    gameWon();
   }
 }
 
-function comprobarpartida(value: number) {
-  if (value > 7.5 || value === 7.5) {
-    finDePartida(value);
-    allButtonsDisabledExceptResetGame();
-  }
+function gameWon() {
+  allButtonsDisabledExceptResetGame();
+  updateMessage(gameMessages.messageGameWon);
 }
 
-function finDePartida(value: number) {
-  if (mensajeSpan && mensajeSpan instanceof HTMLSpanElement) {
-    let messageToShow = WinOrLoseMessage(value) as string;
-    updateMessage(messageToShow);
-  }
+function gameLost() {
+  allButtonsDisabledExceptResetGame();
+  updateMessage(gameMessages.messageGameLost);
 }
 
-/////////////////////////////////////////////////ACTUALIZAR IMAGEN/////////////////////////////////////////////////
-
-function updateCurrentImage(value: string | number): void {
+/////////////////////////////////////////////////UPDATE IMAGE/////////////////////////////////////////////////
+function updateCurrentImage(value: string): void {
+  const currentImage = document.getElementById("cartaActual");
   if (currentImage && currentImage instanceof HTMLImageElement) {
-    currentImage.src = mostrarCarta(value.toString());
+    currentImage.src = value;
   }
 }
 
-function mostrarCarta(value: string) {
+function fetchCardURL(value: string) {
   switch (value) {
     case "1":
       value =
@@ -216,13 +182,11 @@ function mostrarCarta(value: string) {
   return value;
 }
 
-/////////////////////////////////////////////////ACTUALIZAR MENSAJE/////////////////////////////////////////////////
-
-function whatIfMessage(puntuacion: number, nuevospuntos: number) {
-  return puntuacion + nuevospuntos > 7.5
+/////////////////////////////////////////////////MESSAGES & SCOREBOARD UPDATES/////////////////////////////////////////////////
+function whatIfMessage(pointsNow: number, newPoints: number) {
+  return pointsNow + newPoints > 7.5
     ? gameMessages.messageWhatIfGoodDecision
-    : gameMessages.messageWhatIfBadDecision +
-        `${puntuacion + nuevospuntos} puntos`;
+    : gameMessages.messageWhatIfBadDecision + `${pointsNow + newPoints} puntos`;
 }
 
 function abandonMessage(value: number) {
@@ -235,27 +199,24 @@ function abandonMessage(value: number) {
   if (value < 7.5) {
     return gameMessages.messageAbandonBetween6and7;
   }
-  return null;
+  return "";
 }
 
-function WinOrLoseMessage(value: number) {
-  if (value === 7.5) {
-    return gameMessages.messageWin;
-  }
-  if (value > 7.5) {
-    return gameMessages.messageLose;
-  }
-  return null;
-}
-
-function updateMessage(messageToShow: string) {
-  if (mensajeSpan && mensajeSpan instanceof HTMLSpanElement) {
-    mensajeSpan.textContent = messageToShow;
+function updateMessage(messageToShow: string | null) {
+  const messageSpan = document.getElementById("message");
+  if (messageSpan && messageSpan instanceof HTMLSpanElement) {
+    messageSpan.textContent = messageToShow;
   }
 }
+const displayPoints = (points: string) => {
+  let scoreboardText = `Puntos: ` + points;
+  let scoreboardSpan = document.getElementById("scoreboard");
+  if (scoreboardSpan && scoreboardSpan instanceof HTMLSpanElement) {
+    scoreboardSpan.innerHTML = scoreboardText;
+  }
+};
 
-/////////////////////////////////////////////////DESHABILITAR BOTONES/////////////////////////////////////////////////
-
+/////////////////////////////////////////////////DISABLING BUTTONS/////////////////////////////////////////////////
 function disableButtonDealCard(value: boolean) {
   if (dealCardButton && dealCardButton instanceof HTMLButtonElement) {
     dealCardButton.disabled = value;
@@ -276,6 +237,7 @@ function disableButtonReset(value: boolean) {
     resetButton.disabled = value;
   }
 }
+
 function allButtonsDisabledExceptDealCard() {
   disableButtonDealCard(false);
   disableButtonAbandonCard(true);
@@ -296,15 +258,3 @@ function allButtonsDisabledExceptResetGameWhatIf() {
   disableButtonWhatIf(false);
   disableButtonReset(false);
 }
-
-/////////////////////////////////////////////////ACTUALIZAR MARCADOR/////////////////////////////////////////////////
-
-const muestraPuntuacion = (puntuacion: string) => {
-  let textoMarcador = `Puntos: ` + puntuacion;
-  let marcadorSpan = document.getElementById("marcador");
-  marcadorSpan != null
-    ? (marcadorSpan.innerHTML = textoMarcador)
-    : console.log(`marcador: ${textoMarcador}`);
-};
-
-document.addEventListener("DOMContentLoaded", () => muestraPuntuacion("0"));

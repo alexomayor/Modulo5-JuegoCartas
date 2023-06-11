@@ -101,7 +101,7 @@ h1 {
 #whatIfButton {
   top: 90%;
 }
-.marcadorMensaje {
+.scoreboardMessage {
   width: 50%;
   display: grid;
   grid-template-columns: 1fr;
@@ -110,11 +110,11 @@ h1 {
   grid-row-gap: 10px;
   text-align: center;
 }
-#marcador {
+#scoreboard {
   font-size: 64px;
   font-weight: bolder;
 }
-#mensaje {
+#message {
   font-size: 32px;
   font-style: italic;
 }
