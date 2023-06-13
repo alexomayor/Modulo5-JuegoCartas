@@ -17,13 +17,14 @@ interface GameMessages {
   messageAbandonBetween4and5Half: string;
   messageAbandonBetween6and7: string;
 }
-const gameMessages: GameMessages = {
+export const gameMessages: GameMessages = {
   messageStartGame: "Buena suerte!",
   messageGameWon: "¡Lo has clavado! ¡Enhorabuena!",
   messageGameLost: "No juegas muy bien...",
-  messageWhatIfGoodDecision: "Pues si, hiciste bien!",
-  messageWhatIfBadDecision: `Mala decision! Habrias tenido `,
-  messageAbandonLowerThan4: "Has sido muy conservador",
+  messageWhatIfGoodDecision:
+    "Plantarse fue una buena decision! Te habrias pasado.",
+  messageWhatIfBadDecision: `Plantarse fue una mala decision! Habrias tenido `,
+  messageAbandonLowerThan4: "Has sido muy conservador.",
   messageAbandonBetween4and5Half: "Te ha entrado el canguelo eh?",
   messageAbandonBetween6and7: "Casi casi...",
 };
@@ -66,6 +67,8 @@ function whatIf() {
   updateCurrentImage(CardToBeDisplayed); // updates image displayed
   let messageToShow: string = whatIfMessage(currentPoints, newCardPoints);
   updateMessage(messageToShow);
+  currentPoints += newCardPoints; // sums newCardPoints to currentPoints, which holds current game score
+  displayPoints(currentPoints.toString()); // displays current game score in the scoreboard span
 }
 
 function resetGame() {
