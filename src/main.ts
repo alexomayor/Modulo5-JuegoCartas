@@ -1,6 +1,10 @@
 import "./style.css";
 
 let currentPoints = 0;
+// const UNDER_SCORE = 0;
+// const PERFECT_SCORE = 1;
+// const OVER_SCORE = 2;
+const targetPoints = 7.5;
 
 //////////////////////MESSAGES//////////////////////
 interface GameMessages {
@@ -34,7 +38,7 @@ document.addEventListener("DOMContentLoaded", initGame);
 /////////////////////////////////////////////////INIT GAME/////////////////////////////////////////////////
 function initGame() {
   if (dealCardButton && dealCardButton instanceof HTMLButtonElement) {
-    dealCardButton.addEventListener("click", dealCard.bind(null, "newDeal"));
+    dealCardButton.addEventListener("click", dealCard);
   }
   if (abandonButton && abandonButton instanceof HTMLButtonElement) {
     abandonButton.addEventListener("click", abandon);
@@ -51,7 +55,17 @@ function initGame() {
 /////////////////////////////////////////////////BUTTONS: FUNCTIONS/////////////////////////////////////////////////
 function whatIfClick() {
   disableButtonWhatIf(true);
-  dealCard("whatIf");
+  whatIf();
+}
+
+function whatIf() {
+  let newCardValue: number = newCardValueCalc(); // generates random value (1-10)
+  let newCardNumber = newCardNumberCalc(newCardValue); // assigns card number from previous random value (1-7 / 10-12)
+  let CardToBeDisplayed: string = fetchCardURL(newCardNumber.toString()); // fetches new card image URL
+  let newCardPoints = newCardPointsToSUM(newCardNumber); // calculates new card points (0.5 or 1-7)
+  updateCurrentImage(CardToBeDisplayed); // updates image displayed
+  let messageToShow: string = whatIfMessage(currentPoints, newCardPoints);
+  updateMessage(messageToShow);
 }
 
 function resetGame() {
@@ -69,23 +83,16 @@ function abandon() {
   updateMessage(messageToShow);
 }
 
-function dealCard(dealType: string | null) {
+function dealCard() {
   let newCardValue: number = newCardValueCalc(); // generates random value (1-10)
   let newCardNumber = newCardNumberCalc(newCardValue); // assigns card number from previous random value (1-7 / 10-12)
   let CardToBeDisplayed: string = fetchCardURL(newCardNumber.toString()); // fetches new card image URL
   let newCardPoints = newCardPointsToSUM(newCardNumber); // calculates new card points (0.5 or 1-7)
-
-  if (dealType === "whatIf") {
-    let messageToShow: string = whatIfMessage(currentPoints, newCardPoints);
-    updateMessage(messageToShow);
-  }
-  if (dealType === "newDeal") {
-    currentPoints += newCardPoints; // sums newCardPoints to currentPoints, which holds current game score
-    gameStart();
-    updateCurrentImage(CardToBeDisplayed); // updates image displayed
-    displayPoints(currentPoints.toString()); // displays current game score in the scoreboard span
-    gameCheck(currentPoints); // checks wether the current game is won or lost
-  }
+  updateCurrentImage(CardToBeDisplayed); // updates image displayed
+  currentPoints += newCardPoints; // sums newCardPoints to currentPoints, which holds current game score
+  gameStart();
+  displayPoints(currentPoints.toString()); // displays current game score in the scoreboard span
+  gameCheck(currentPoints); // checks wether the current game is won or lost
 }
 
 /////////////////////////////////////////////////CALC VALUES/////////////////////////////////////////////////
@@ -103,14 +110,14 @@ function newCardNumberCalc(value: number) {
 function gameStart() {
   disableButtonAbandonCard(false);
   disableButtonReset(false);
-  updateMessage(null);
+  updateMessage("");
 }
 
 function gameCheck(value: number) {
-  if (value > 7.5) {
+  if (value > targetPoints) {
     gameLost();
   }
-  if (value === 7.5) {
+  if (value === targetPoints) {
     gameWon();
   }
 }
@@ -184,7 +191,7 @@ function fetchCardURL(value: string) {
 
 /////////////////////////////////////////////////MESSAGES & SCOREBOARD UPDATES/////////////////////////////////////////////////
 function whatIfMessage(pointsNow: number, newPoints: number) {
-  return pointsNow + newPoints > 7.5
+  return pointsNow + newPoints > targetPoints
     ? gameMessages.messageWhatIfGoodDecision
     : gameMessages.messageWhatIfBadDecision + `${pointsNow + newPoints} puntos`;
 }
@@ -202,7 +209,7 @@ function abandonMessage(value: number) {
   return "";
 }
 
-function updateMessage(messageToShow: string | null) {
+function updateMessage(messageToShow: string) {
   const messageSpan = document.getElementById("message");
   if (messageSpan && messageSpan instanceof HTMLSpanElement) {
     messageSpan.textContent = messageToShow;
